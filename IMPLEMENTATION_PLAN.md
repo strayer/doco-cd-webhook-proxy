@@ -145,6 +145,72 @@ Every source file has a corresponding `_test.go` file. Tests use only the standa
 
 Full line and branch coverage for all security-critical paths (signature verification, IP validation, allowlist enforcement). Use `go test -cover` to verify.
 
+## Implementation TODO
+
+Each item follows TDD: write failing test first, then implement, then refactor.
+
+### 1. `config` — no internal dependencies, everything else needs it
+
+- [ ] Define `Config` struct and `Load()` function
+- [ ] Required env vars: `GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`, `DOCO_CD_URL`, `ALLOWED_REPOS` — fail if missing/empty
+- [ ] Optional env vars: `LISTEN_ADDR` (default `:8080`), `TRUSTED_PROXY_CIDRS`, `GITHUB_META_REFRESH_INTERVAL` (default `1h`)
+- [ ] `_FILE` suffix support for secret vars (read file contents, trim whitespace)
+- [ ] `ALLOWED_REPOS` canonicalization: lowercase, trim whitespace, reject if empty after parsing
+- [ ] `TRUSTED_PROXY_CIDRS` parsing and validation
+- [ ] Warn if `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` are identical
+- [ ] Startup log with redacted secrets
+
+### 2. `signature` — no internal dependencies
+
+- [ ] `Compute(message, key []byte) string` — returns `sha256=<hex>` HMAC-SHA256
+- [ ] `Verify(message, key []byte, header string) error` — parse header, require `sha256=` prefix, reject `sha1=`, constant-time compare via `hmac.Equal`
+
+### 3. `payload` — no internal dependencies
+
+- [ ] Define incoming `GitHubPushEvent` struct with only the allowed fields
+- [ ] `Parse(body []byte) (GitHubPushEvent, error)` — unmarshal and validate required fields are non-empty
+- [ ] `GitHubPushEvent.Marshal() ([]byte, error)` — construct clean outgoing JSON from validated fields
+
+### 4. `ipcheck` — no internal dependencies (config values passed in as params)
+
+- [ ] `GitHubIPChecker` struct with `Check(ip string) bool`
+- [ ] Fetch and parse `https://api.github.com/meta` — extract `hooks` CIDRs (IPv4 + IPv6)
+- [ ] Fail startup if initial fetch fails or returns no CIDRs
+- [ ] Background refresh goroutine with configurable interval
+- [ ] `ETag`/`If-None-Match` for efficient polling
+- [ ] On refresh failure: log error, keep last-known-good ranges
+- [ ] `ExtractClientIP(r *http.Request, trustedProxyCIDRs []*net.IPNet) string` — use `RemoteAddr`, fall back to last untrusted `X-Forwarded-For` entry when `RemoteAddr` is in trusted proxy CIDRs
+
+### 5. `proxy` — depends on `signature` and `payload` types
+
+- [ ] `Forwarder` struct wrapping an `http.Client` (15s timeout, no redirects)
+- [ ] `Forward(event GitHubPushEvent, docoCDURL string, secret []byte) (statusCode int, err error)`
+- [ ] Construct `POST` to `{DOCO_CD_URL}/v1/webhook` with correct headers and HMAC signature over marshaled bytes
+- [ ] Return doco-cd's status code; do not forward headers or body
+
+### 6. `handler` — depends on everything above
+
+- [ ] `NewHandler(cfg Config, checker *GitHubIPChecker, forwarder *Forwarder) http.Handler`
+- [ ] `POST /webhook` only — reject other methods/paths
+- [ ] Require `Content-Type: application/json`
+- [ ] Enforce max body size (1 MB)
+- [ ] Event routing: `ping` → 200, unknown events → 200, `push` → continue
+- [ ] Source IP validation via `ipcheck`
+- [ ] HMAC signature verification against raw body
+- [ ] Payload parsing and validation
+- [ ] Repository allowlist check (case-insensitive)
+- [ ] Forward to doco-cd and return its status code
+- [ ] Generic error responses throughout (no internal details)
+- [ ] Integration tests: full pipeline end-to-end, wrong method, wrong content type, bad IP, bad signature, disallowed repo, ping event, unknown event
+
+### 7. `cmd/proxy/main.go` — ties everything together
+
+- [ ] Load config via `config.Load()`
+- [ ] Initialize `GitHubIPChecker` (fail if initial fetch fails)
+- [ ] Initialize `Forwarder`
+- [ ] Wire up handler and start `http.Server` with timeouts (`ReadHeaderTimeout` 5s, `ReadTimeout` 10s, `WriteTimeout` 30s, `IdleTimeout` 60s, `MaxHeaderBytes` 1 MB)
+- [ ] Graceful shutdown on `SIGINT`/`SIGTERM`
+
 ## Not in scope
 
 - HTTPS termination (reverse proxy responsibility)
