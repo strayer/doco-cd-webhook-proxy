@@ -163,8 +163,8 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 2. `signature` — no internal dependencies
 
-- [ ] `Compute(message, key []byte) string` — returns `sha256=<hex>` HMAC-SHA256
-- [ ] `Verify(message, key []byte, header string) error` — parse header, require `sha256=` prefix, reject `sha1=`, constant-time compare via `hmac.Equal`
+- [x] `Compute(message, key []byte) string` — returns `sha256=<hex>` HMAC-SHA256
+- [x] `Verify(message, key []byte, header string) error` — parse header, require `sha256=` prefix, reject `sha1=`, constant-time compare via `hmac.Equal`
 
 ### 3. `payload` — no internal dependencies
 
