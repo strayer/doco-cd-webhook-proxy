@@ -151,14 +151,15 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 1. `config` — no internal dependencies, everything else needs it
 
-- [ ] Define `Config` struct and `Load()` function
-- [ ] Required env vars: `GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`, `DOCO_CD_URL`, `ALLOWED_REPOS` — fail if missing/empty
-- [ ] Optional env vars: `LISTEN_ADDR` (default `:8080`), `TRUSTED_PROXY_CIDRS`, `GITHUB_META_REFRESH_INTERVAL` (default `1h`)
-- [ ] `_FILE` suffix support for secret vars (read file contents, trim whitespace)
-- [ ] `ALLOWED_REPOS` canonicalization: lowercase, trim whitespace, reject if empty after parsing
-- [ ] `TRUSTED_PROXY_CIDRS` parsing and validation
-- [ ] Warn if `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` are identical
-- [ ] Startup log with redacted secrets
+- [x] Define `Config` struct and `Load()` function
+- [x] Required env vars: `GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`, `DOCO_CD_URL`, `ALLOWED_REPOS` — fail if missing/empty
+- [x] Optional env vars: `LISTEN_ADDR` (default `:8080`), `TRUSTED_PROXY_CIDRS`, `GITHUB_META_REFRESH_INTERVAL` (default `1h`)
+- [x] `_FILE` suffix support for secret vars (read file contents, trim whitespace)
+- [x] `ALLOWED_REPOS` canonicalization: lowercase, trim whitespace, reject if empty after parsing
+- [x] `TRUSTED_PROXY_CIDRS` parsing and validation
+- [x] Warn if `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` are identical
+- [x] Startup log with redacted secrets
+- [x] Reject non-positive `GITHUB_META_REFRESH_INTERVAL`
 
 ### 2. `signature` — no internal dependencies
 
