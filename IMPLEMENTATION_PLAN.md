@@ -185,13 +185,13 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 4. `ipcheck` — no internal dependencies (config values passed in as params)
 
-- [ ] `GitHubIPChecker` struct with `Check(ip string) bool`
-- [ ] Fetch and parse `https://api.github.com/meta` — extract `hooks` CIDRs (IPv4 + IPv6)
-- [ ] Fail startup if initial fetch fails or returns no CIDRs
-- [ ] Background refresh goroutine with configurable interval
-- [ ] `ETag`/`If-None-Match` for efficient polling
-- [ ] On refresh failure: log error, keep last-known-good ranges
-- [ ] `ExtractClientIP(r *http.Request, trustedProxyCIDRs []*net.IPNet) string` — use `RemoteAddr`, fall back to last untrusted `X-Forwarded-For` entry when `RemoteAddr` is in trusted proxy CIDRs
+- [x] `GitHubIPChecker` struct with `Check(ip string) bool`
+- [x] Fetch and parse `https://api.github.com/meta` — extract `hooks` CIDRs (IPv4 + IPv6)
+- [x] Fail startup if initial fetch fails or returns no CIDRs
+- [x] Background refresh goroutine with configurable interval
+- [x] `ETag`/`If-None-Match` for efficient polling
+- [x] On refresh failure: log error, keep last-known-good ranges
+- [x] `ExtractClientIP(r *http.Request, trustedProxyCIDRs []*net.IPNet) string` — use `RemoteAddr`, fall back to last untrusted `X-Forwarded-For` entry when `RemoteAddr` is in trusted proxy CIDRs
 
 ### 5. `proxy` — depends on `signature` and `payload` types
 
