@@ -130,6 +130,17 @@ This project follows **test-driven development (TDD)**. For each unit of functio
 
 Every source file has a corresponding `_test.go` file. Tests use only the standard library `testing` package and `net/http/httptest` — no external test frameworks.
 
+### Session workflow
+
+Each Claude Code session implements exactly **one** item from the TODO list below. Do not continue to the next item in the same session. The workflow per session is:
+
+1. Identify the next unchecked item in the TODO list
+2. Implement it following TDD (tests first, then implementation)
+3. Run `go test ./... -cover` and `go vet ./...` to verify
+4. Update the TODO checkboxes in this file to mark completed items
+5. Run `/codex:review --background` for a code review
+6. The user will then clear the session and start fresh for the next item
+
 ### Test strategy by component
 
 | Component | Test approach |
@@ -168,9 +179,9 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 3. `payload` — no internal dependencies
 
-- [ ] Define incoming `GitHubPushEvent` struct with only the allowed fields
-- [ ] `Parse(body []byte) (GitHubPushEvent, error)` — unmarshal and validate required fields are non-empty
-- [ ] `GitHubPushEvent.Marshal() ([]byte, error)` — construct clean outgoing JSON from validated fields
+- [x] Define incoming `GitHubPushEvent` struct with only the allowed fields
+- [x] `Parse(body []byte) (GitHubPushEvent, error)` — unmarshal and validate required fields are non-empty
+- [x] `GitHubPushEvent.Marshal() ([]byte, error)` — construct clean outgoing JSON from validated fields
 
 ### 4. `ipcheck` — no internal dependencies (config values passed in as params)
 
