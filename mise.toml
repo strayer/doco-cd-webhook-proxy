@@ -1,0 +1,4 @@
+[tools]
+go = "1.26.3"
+"go:golang.org/x/tools/cmd/goimports" = "0.45.0"
+golangci-lint = "2.12.2"
