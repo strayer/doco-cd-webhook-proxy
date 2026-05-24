@@ -195,10 +195,10 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 5. `proxy` — depends on `signature` and `payload` types
 
-- [ ] `Forwarder` struct wrapping an `http.Client` (15s timeout, no redirects)
-- [ ] `Forward(event GitHubPushEvent, docoCDURL string, secret []byte) (statusCode int, err error)`
-- [ ] Construct `POST` to `{DOCO_CD_URL}/v1/webhook` with correct headers and HMAC signature over marshaled bytes
-- [ ] Return doco-cd's status code; do not forward headers or body
+- [x] `Forwarder` struct wrapping an `http.Client` (15s timeout, no redirects)
+- [x] `Forward(event GitHubPushEvent, docoCDURL string, secret []byte) (statusCode int, err error)`
+- [x] Construct `POST` to `{DOCO_CD_URL}/v1/webhook` with correct headers and HMAC signature over marshaled bytes
+- [x] Return doco-cd's status code; do not forward headers or body
 
 ### 6. `handler` — depends on everything above
 
