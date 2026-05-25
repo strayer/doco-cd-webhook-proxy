@@ -225,9 +225,11 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 8. CI/CD — GitHub Actions and Docker image
 
-- [ ] **Dockerfile**: Multi-stage build — Go build stage, `scratch` final image. Static binary with `CGO_ENABLED=0`. Non-root user via numeric UID.
-- [ ] **PR validation workflow**: GitHub Actions workflow that runs on every PR with separate jobs/steps for each check (each visible as its own status check on the PR): `go test`, `go vet`, goimports, golangci-lint, and Docker image build.
-- [ ] **Image publish workflow**: GitHub Actions workflow that builds and pushes to `ghcr.io` on main branch pushes/tags.
+- [x] **Dockerfile**: Multi-stage build — Go build stage, `scratch` final image. Static binary with `CGO_ENABLED=0`. Non-root user via numeric UID.
+- [x] **PR validation workflow** (`.github/workflows/ci.yaml`): Separate jobs for `go test`, `go vet`, goimports, golangci-lint, and Docker build — each visible as its own PR status check.
+- [x] **Dev image workflow** (`.github/workflows/build-dev.yaml`): Builds and pushes `dev` tag to `ghcr.io` on main pushes (linux/amd64 + linux/arm64).
+- [ ] **Release workflow**: Triggered on `v*` tags, uses `docker/github-builder` for signed/attested multi-platform builds pushed to `ghcr.io` with semver tags.
+- [x] **Release notes config** (`.github/release.yml`): Changelog categories by PR label for GitHub auto-generated release notes.
 
 ## Not in scope
 
@@ -270,23 +272,30 @@ Issues identified during code review that should be addressed as follow-up work.
 
 ```
 .
+├── .github/
+│   ├── release.yml              # changelog categories for auto-generated release notes
+│   └── workflows/
+│       ├── build-dev.yaml       # build + push dev image on main
+│       └── ci.yaml              # PR checks (test, vet, goimports, lint, docker)
 ├── cmd/
 │   └── proxy/
-│       └── main.go          # entrypoint, config loading, server setup
+│       └── main.go              # entrypoint, config loading, server setup
 ├── internal/
 │   └── proxy/
-│       ├── config.go        # configuration parsing and validation
+│       ├── config.go            # configuration parsing and validation
 │       ├── config_test.go
-│       ├── handler.go       # HTTP handler (pipeline orchestration)
+│       ├── handler.go           # HTTP handler (pipeline orchestration)
 │       ├── handler_test.go
-│       ├── signature.go     # HMAC signing and verification
+│       ├── signature.go         # HMAC signing and verification
 │       ├── signature_test.go
-│       ├── ipcheck.go       # GitHub IP range fetching and validation
+│       ├── ipcheck.go           # GitHub IP range fetching and validation
 │       ├── ipcheck_test.go
-│       ├── payload.go       # webhook payload types and construction
+│       ├── payload.go           # webhook payload types and construction
 │       ├── payload_test.go
-│       ├── proxy.go         # outgoing request to doco-cd
+│       ├── proxy.go             # outgoing request to doco-cd
 │       └── proxy_test.go
+├── Dockerfile
+├── .dockerignore
 ├── go.mod
 ├── README.md
 └── IMPLEMENTATION_PLAN.md
