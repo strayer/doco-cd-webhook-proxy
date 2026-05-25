@@ -45,6 +45,28 @@ Secret variables (`GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`) support a `
 > [!NOTE]
 > `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` should be different values.
 
+## Running with Docker
+
+```yaml
+# compose.yaml
+services:
+  webhook-proxy:
+    image: ghcr.io/strayer/doco-cd-webhook-proxy:latest
+    ports:
+      - "8080:8080"
+    environment:
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      DOCO_CD_WEBHOOK_SECRET: ${DOCO_CD_WEBHOOK_SECRET}
+      DOCO_CD_URL: http://doco-cd:80
+      ALLOWED_REPOS: org/repo1,org/repo2
+
+  doco-cd:
+    image: ghcr.io/kimdre/doco-cd:latest
+    # ... doco-cd configuration
+```
+
+The proxy must be able to reach both the internet (to fetch [GitHub's IP ranges](https://api.github.com/meta)) and the internal doco-cd instance. Place it on a shared network with doco-cd, but only expose the proxy's port to the reverse proxy / internet.
+
 ## Development Setup
 
 This project uses [mise](https://mise.jdx.dev) for tool management and [prek](https://github.com/j178/prek) for pre-commit hooks.
