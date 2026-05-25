@@ -320,6 +320,32 @@ func TestLoadTrustedProxyCIDRsInvalid(t *testing.T) {
 	}
 }
 
+func TestLoadAllowedReposInvalidFormat(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{"space separated", "org/repo org/other"},
+		{"no slash", "repo-only"},
+		{"too many slashes", "org/sub/repo"},
+		{"empty owner", "/repo"},
+		{"empty repo", "org/"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearConfigEnv(t)
+			setRequiredEnv(t)
+			t.Setenv("ALLOWED_REPOS", tt.value)
+
+			_, err := LoadConfig()
+			if err == nil {
+				t.Fatalf("expected error for ALLOWED_REPOS=%q", tt.value)
+			}
+		})
+	}
+}
+
 func TestLoadIdenticalSecretsWarning(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("GITHUB_WEBHOOK_SECRET", "same-secret")

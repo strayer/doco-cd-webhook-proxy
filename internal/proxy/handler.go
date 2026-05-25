@@ -40,6 +40,10 @@ func NewHandler(cfg *Config, checker *GitHubIPChecker, forwarder *Forwarder) htt
 		checker:   checker,
 		forwarder: forwarder,
 	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("request to unregistered path", "path", r.URL.Path, "method", r.Method)
+		w.WriteHeader(http.StatusNotFound)
+	})
 	return mux
 }
 
@@ -75,17 +79,17 @@ func (h *webhookHandler) handle(r *http.Request) handlerResult {
 		return handlerResult{status: http.StatusBadRequest, reason: rejectMissingEvent}
 	}
 
+	if len(r.Header.Values("X-Hub-Signature-256")) != 1 {
+		slog.Warn("signature verification failed", "error", "expected exactly one X-Hub-Signature-256 header")
+		return handlerResult{status: http.StatusForbidden, reason: rejectSignatureCount}
+	}
+
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodySize+1))
 	if err != nil {
 		return handlerResult{status: http.StatusBadRequest, reason: rejectBodyRead}
 	}
 	if len(body) > maxBodySize {
 		return handlerResult{status: http.StatusRequestEntityTooLarge, reason: rejectBodyTooLarge}
-	}
-
-	if len(r.Header.Values("X-Hub-Signature-256")) != 1 {
-		slog.Warn("signature verification failed", "error", "expected exactly one X-Hub-Signature-256 header")
-		return handlerResult{status: http.StatusForbidden, reason: rejectSignatureCount}
 	}
 	sigHeader := r.Header.Get("X-Hub-Signature-256")
 	if err := VerifySignature(body, []byte(h.cfg.GitHubWebhookSecret), sigHeader); err != nil {
@@ -98,6 +102,7 @@ func (h *webhookHandler) handle(r *http.Request) handlerResult {
 	}
 
 	if event != "push" {
+		slog.Info("ignoring unsupported event type", "event", event)
 		return handlerResult{status: http.StatusOK}
 	}
 
@@ -118,7 +123,7 @@ func (h *webhookHandler) handle(r *http.Request) handlerResult {
 		return handlerResult{status: http.StatusForbidden, reason: rejectCloneURL}
 	}
 
-	statusCode, err := h.forwarder.Forward(payload, h.cfg.DocoCDURL, []byte(h.cfg.DocoCDWebhookSecret))
+	statusCode, err := h.forwarder.Forward(r.Context(), payload, h.cfg.DocoCDURL, []byte(h.cfg.DocoCDWebhookSecret))
 	if err != nil {
 		slog.Error("failed to forward to doco-cd", "error", err)
 		return handlerResult{status: http.StatusBadGateway, reason: rejectForwardError}

@@ -2,8 +2,10 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -24,7 +26,7 @@ func NewForwarder() *Forwarder {
 	}
 }
 
-func (f *Forwarder) Forward(event GitHubPushEvent, docoCDURL string, secret []byte) (int, error) {
+func (f *Forwarder) Forward(ctx context.Context, event GitHubPushEvent, docoCDURL string, secret []byte) (int, error) {
 	body, err := event.Marshal()
 	if err != nil {
 		return 0, fmt.Errorf("failed to marshal event: %w", err)
@@ -32,7 +34,7 @@ func (f *Forwarder) Forward(event GitHubPushEvent, docoCDURL string, secret []by
 
 	url := strings.TrimRight(docoCDURL, "/") + "/v1/webhook"
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -46,6 +48,8 @@ func (f *Forwarder) Forward(event GitHubPushEvent, docoCDURL string, secret []by
 		return 0, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return resp.StatusCode, nil
 }

@@ -1,11 +1,13 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func validTestEvent() GitHubPushEvent {
@@ -49,7 +51,7 @@ func TestForwarderNoRedirects(t *testing.T) {
 	defer server.Close()
 
 	f := NewForwarder()
-	_, err := f.Forward(validTestEvent(), server.URL, []byte("secret"))
+	_, err := f.Forward(context.Background(), validTestEvent(), server.URL, []byte("secret"))
 	if err == nil {
 		t.Fatal("expected error when server redirects")
 	}
@@ -78,7 +80,7 @@ func TestForwarderSuccess(t *testing.T) {
 	defer server.Close()
 
 	f := NewForwarder()
-	statusCode, err := f.Forward(event, server.URL, secret)
+	statusCode, err := f.Forward(context.Background(), event, server.URL, secret)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -137,7 +139,7 @@ func TestForwarderReturnsBackendStatusCode(t *testing.T) {
 			defer server.Close()
 
 			f := NewForwarder()
-			code, err := f.Forward(validTestEvent(), server.URL, []byte("secret"))
+			code, err := f.Forward(context.Background(), validTestEvent(), server.URL, []byte("secret"))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -150,7 +152,7 @@ func TestForwarderReturnsBackendStatusCode(t *testing.T) {
 
 func TestForwarderUnreachableBackend(t *testing.T) {
 	f := NewForwarder()
-	_, err := f.Forward(validTestEvent(), "http://127.0.0.1:1", []byte("secret"))
+	_, err := f.Forward(context.Background(), validTestEvent(), "http://127.0.0.1:1", []byte("secret"))
 	if err == nil {
 		t.Fatal("expected error for unreachable backend")
 	}
@@ -181,7 +183,7 @@ func TestForwarderURLPath(t *testing.T) {
 			}
 
 			f := NewForwarder()
-			_, err := f.Forward(validTestEvent(), baseURL, []byte("secret"))
+			_, err := f.Forward(context.Background(), validTestEvent(), baseURL, []byte("secret"))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -212,7 +214,7 @@ func TestForwarderSignatureOverMarshaledBytes(t *testing.T) {
 	defer server.Close()
 
 	f := NewForwarder()
-	_, err := f.Forward(event, server.URL, secret)
+	_, err := f.Forward(context.Background(), event, server.URL, secret)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -221,4 +223,41 @@ func TestForwarderSignatureOverMarshaledBytes(t *testing.T) {
 	if receivedSig != expectedSig {
 		t.Errorf("signature mismatch: got %s, want %s", receivedSig, expectedSig)
 	}
+}
+
+func TestForwarderRespectsContextCancellation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(5 * time.Second)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	f := NewForwarder()
+	_, err := f.Forward(ctx, validTestEvent(), server.URL, []byte("secret"))
+	if err == nil {
+		t.Fatal("expected error when context is cancelled")
+	}
+}
+
+func TestForwarderDrainsResponseBody(t *testing.T) {
+	bodyWritten := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("response body that should be drained"))
+		close(bodyWritten)
+	}))
+	defer server.Close()
+
+	f := NewForwarder()
+	code, err := f.Forward(context.Background(), validTestEvent(), server.URL, []byte("secret"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if code != http.StatusOK {
+		t.Errorf("expected 200, got %d", code)
+	}
+	<-bodyWritten
 }

@@ -109,12 +109,19 @@ func TestHandler_WrongPath(t *testing.T) {
 	backend := failingBackend(t)
 	defer backend.Close()
 	h := NewHandler(testConfig(backend.URL), testChecker(t, "127.0.0.0/8"), NewForwarder())
+	logs := captureLogs(t)
 
 	req := httptest.NewRequest("POST", "/other", nil)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected %d, got %d", http.StatusNotFound, rr.Code)
+	}
+	if rr.Body.Len() != 0 {
+		t.Errorf("expected empty response body for unregistered path, got %q", rr.Body.String())
+	}
+	if !strings.Contains(logs.String(), "request to unregistered path") {
+		t.Error("expected log message about unregistered path")
 	}
 }
 
@@ -238,6 +245,7 @@ func TestHandler_UnknownEvent(t *testing.T) {
 	events := []string{"issues", "pull_request", "release", "star"}
 	for _, e := range events {
 		t.Run(e, func(t *testing.T) {
+			logs := captureLogs(t)
 			body := `{}`
 			req := validPushRequest(t)
 			req.Header.Set("X-GitHub-Event", e)
@@ -249,6 +257,9 @@ func TestHandler_UnknownEvent(t *testing.T) {
 			}
 			if result.forwarded {
 				t.Error("unknown event should not be forwarded")
+			}
+			if !strings.Contains(logs.String(), "ignoring unsupported event type") {
+				t.Error("expected log message about unsupported event type")
 			}
 		})
 	}
@@ -409,6 +420,7 @@ func TestHandler_BodyTooLarge_PingEvent(t *testing.T) {
 	req := validPushRequest(t)
 	req.Header.Set("X-GitHub-Event", "ping")
 	req.Body = io.NopCloser(strings.NewReader(largeBody))
+	req.Header.Set("X-Hub-Signature-256", ComputeSignature([]byte(largeBody), []byte("gh-secret")))
 	assertReason(t, h, req, rejectBodyTooLarge)
 }
 
@@ -421,6 +433,7 @@ func TestHandler_BodyTooLarge_UnknownEvent(t *testing.T) {
 	req := validPushRequest(t)
 	req.Header.Set("X-GitHub-Event", "issues")
 	req.Body = io.NopCloser(strings.NewReader(largeBody))
+	req.Header.Set("X-Hub-Signature-256", ComputeSignature([]byte(largeBody), []byte("gh-secret")))
 	assertReason(t, h, req, rejectBodyTooLarge)
 }
 

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -18,6 +19,7 @@ type gitHubMeta struct {
 type GitHubIPChecker struct {
 	metaURL  string
 	interval time.Duration
+	client   *http.Client
 	etag     string
 
 	mu    sync.RWMutex
@@ -31,11 +33,15 @@ func NewGitHubIPChecker(metaURL string, refreshInterval time.Duration) (*GitHubI
 	c := &GitHubIPChecker{
 		metaURL:  metaURL,
 		interval: refreshInterval,
+		client:   &http.Client{Timeout: 10 * time.Second},
 		stopCh:   make(chan struct{}),
 		done:     make(chan struct{}),
 	}
 
-	cidrs, etag, err := c.fetch("")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cidrs, etag, err := c.fetch(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("initial GitHub meta fetch: %w", err)
 	}
@@ -73,10 +79,8 @@ func (c *GitHubIPChecker) Check(ip string) bool {
 	return false
 }
 
-func (c *GitHubIPChecker) fetch(etag string) ([]*net.IPNet, string, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	req, err := http.NewRequest("GET", c.metaURL, nil)
+func (c *GitHubIPChecker) fetch(ctx context.Context, etag string) ([]*net.IPNet, string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.metaURL, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -84,7 +88,7 @@ func (c *GitHubIPChecker) fetch(etag string) ([]*net.IPNet, string, error) {
 		req.Header.Set("If-None-Match", etag)
 	}
 
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, "", err
 	}
@@ -125,13 +129,26 @@ func (c *GitHubIPChecker) refreshLoop() {
 	ticker := time.NewTicker(c.interval)
 	defer ticker.Stop()
 
-	for {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
 		select {
 		case <-c.stopCh:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			cidrs, newETag, err := c.fetch(c.etag)
+			cidrs, newETag, err := c.fetch(ctx, c.etag)
 			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
 				slog.Error("failed to refresh GitHub IP ranges, keeping last-known-good", "error", err)
 				continue
 			}

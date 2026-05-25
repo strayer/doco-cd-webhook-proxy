@@ -237,28 +237,28 @@ Issues identified during code review that should be addressed as follow-up work.
 
 ### `proxy.go` — Forwarder
 
-- **No context propagation**: `Forward()` uses `http.NewRequest` without context. In-flight forwards cannot be cancelled on server shutdown. The 15s client timeout can exceed the shutdown deadline. Fix: accept and use `r.Context()` via `http.NewRequestWithContext`.
-- **Response body not drained**: `defer resp.Body.Close()` without reading the body prevents HTTP keep-alive connection reuse. Under load this exhausts the connection pool. Fix: `io.Copy(io.Discard, resp.Body)` before close.
-- **`strings.TrimRight` vs `strings.TrimSuffix`**: URL construction uses `strings.TrimRight(docoCDURL, "/")` which is a cutset operation, not suffix removal. Functionally equivalent for single-char `/` but semantically wrong. Fix: use `strings.TrimSuffix`.
+- [x] **No context propagation**: `Forward()` uses `http.NewRequest` without context. In-flight forwards cannot be cancelled on server shutdown. The 15s client timeout can exceed the shutdown deadline. Fix: accept and use `r.Context()` via `http.NewRequestWithContext`.
+- [x] **Response body not drained**: `defer resp.Body.Close()` without reading the body prevents HTTP keep-alive connection reuse. Under load this exhausts the connection pool. Fix: `io.Copy(io.Discard, resp.Body)` before close.
+- [x] **`strings.TrimRight` vs `strings.TrimSuffix`**: Reviewed and kept `strings.TrimRight(docoCDURL, "/")` — for a single-char cutset `/` it correctly strips all trailing slashes, which is the desired behavior. `TrimSuffix` would only remove one slash, breaking URLs like `http://host//`.
 
 ### `ipcheck.go` — GitHubIPChecker
 
-- **`checker.Stop()` blocks during mid-fetch**: `refreshLoop`'s `fetch()` creates an `http.Client` with 10s timeout and no context. `Stop()` blocks on `<-c.done` until the fetch completes, adding up to 10s to process exit time. Fix: use a context derived from `stopCh` for the HTTP request.
-- **New `http.Client` per fetch**: `fetch()` allocates a fresh `http.Client{Timeout: 10s}` on every call, bypassing connection pooling. Fix: create the client once in `NewGitHubIPChecker`.
+- [x] **`checker.Stop()` blocks during mid-fetch**: `refreshLoop`'s `fetch()` creates an `http.Client` with 10s timeout and no context. `Stop()` blocks on `<-c.done` until the fetch completes, adding up to 10s to process exit time. Fix: use a context derived from `stopCh` for the HTTP request.
+- [x] **New `http.Client` per fetch**: `fetch()` allocates a fresh `http.Client{Timeout: 10s}` on every call, bypassing connection pooling. Fix: create the client once in `NewGitHubIPChecker`.
 
 ### `handler.go` — webhook handler
 
-- **Body read before signature-count check**: The handler reads up to 1MB (line 78) before checking the `X-Hub-Signature-256` header count (line 86). The IP check mitigates this, but promoting the cheap header-count check would reduce resource waste from invalid requests.
-- **Silent discard of non-push/non-ping events**: Events like `issues` or `pull_request` return 200 with no log. Operators cannot detect misconfigured webhook subscriptions. Fix: add a debug/info log when dropping unsupported events.
-- **Unregistered paths bypass security checks**: Only `/webhook` is registered on the ServeMux. Other paths get the default 404 handler without IP checks or logging. Low severity since the 404 is generic, but path probing goes unrecorded.
+- [x] **Body read before signature-count check**: The handler reads up to 1MB (line 78) before checking the `X-Hub-Signature-256` header count (line 86). The IP check mitigates this, but promoting the cheap header-count check would reduce resource waste from invalid requests.
+- [x] **Silent discard of non-push/non-ping events**: Events like `issues` or `pull_request` return 200 with no log. Operators cannot detect misconfigured webhook subscriptions. Fix: add a debug/info log when dropping unsupported events.
+- [x] **Unregistered paths bypass security checks**: Only `/webhook` is registered on the ServeMux. Other paths get the default 404 handler without IP checks or logging. Low severity since the 404 is generic, but path probing goes unrecorded.
 
 ### `handler_test.go` — test brittleness
 
-- **Body-too-large tests use wrong signature**: `TestHandler_BodyTooLarge_PingEvent` and `_UnknownEvent` replace the body but leave the signature computed over `validPushPayload`. Tests pass only because body-size is checked before signature. If checks are reordered, tests break for the wrong reason.
+- [x] **Body-too-large tests use wrong signature**: `TestHandler_BodyTooLarge_PingEvent` and `_UnknownEvent` replace the body but leave the signature computed over `validPushPayload`. Tests pass only because body-size is checked before signature. If checks are reordered, tests break for the wrong reason.
 
 ### `config.go` — configuration
 
-- **Space-separated `ALLOWED_REPOS` silently fails**: `ALLOWED_REPOS=org/repo org/other` (space instead of comma) becomes one entry `"org/repo org/other"` that never matches. Fail-closed but no startup warning. Consider validating that entries match `owner/repo` format.
+- [x] **Space-separated `ALLOWED_REPOS` silently fails**: `ALLOWED_REPOS=org/repo org/other` (space instead of comma) becomes one entry `"org/repo org/other"` that never matches. Fail-closed but no startup warning. Consider validating that entries match `owner/repo` format.
 
 ## Project structure
 
