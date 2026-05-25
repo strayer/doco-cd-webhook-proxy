@@ -202,18 +202,18 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 6. `handler` — depends on everything above
 
-- [ ] `NewHandler(cfg Config, checker *GitHubIPChecker, forwarder *Forwarder) http.Handler`
-- [ ] `POST /webhook` only — reject other methods/paths
-- [ ] Require `Content-Type: application/json`
-- [ ] Enforce max body size (1 MB)
-- [ ] Event routing: `ping` → 200, unknown events → 200, `push` → continue
-- [ ] Source IP validation via `ipcheck`
-- [ ] HMAC signature verification against raw body
-- [ ] Payload parsing and validation
-- [ ] Repository allowlist check (case-insensitive)
-- [ ] Forward to doco-cd and return its status code
-- [ ] Generic error responses throughout (no internal details)
-- [ ] Integration tests: full pipeline end-to-end, wrong method, wrong content type, bad IP, bad signature, disallowed repo, ping event, unknown event
+- [x] `NewHandler(cfg Config, checker *GitHubIPChecker, forwarder *Forwarder) http.Handler`
+- [x] `POST /webhook` only — reject other methods/paths
+- [x] Require `Content-Type: application/json`
+- [x] Enforce max body size (1 MB)
+- [x] Event routing: `ping` → 200, unknown events → 200, `push` → continue
+- [x] Source IP validation via `ipcheck`
+- [x] HMAC signature verification against raw body
+- [x] Payload parsing and validation
+- [x] Repository allowlist check (case-insensitive)
+- [x] Forward to doco-cd and return its status code
+- [x] Generic error responses throughout (no internal details)
+- [x] Integration tests: full pipeline end-to-end, wrong method, wrong content type, bad IP, bad signature, disallowed repo, ping event, unknown event
 
 ### 7. `cmd/proxy/main.go` — ties everything together
 
