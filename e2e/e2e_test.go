@@ -204,7 +204,8 @@ func sendWebhook(t *testing.T, addr, event, body, secret string) *http.Response 
 	req.Header.Set("X-GitHub-Event", event)
 	req.Header.Set("X-Hub-Signature-256", sig)
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
@@ -559,6 +560,30 @@ func TestE2E_ResponseBodyNotLeaked(t *testing.T) {
 	}
 	if resp.Header.Get("X-Internal-Secret") != "" {
 		t.Error("backend internal headers leaked to client")
+	}
+}
+
+func TestE2E_MetaURLWhitespaceTrimmed(t *testing.T) {
+	meta := githubMetaServer([]string{"127.0.0.0/8"})
+	defer meta.Close()
+
+	capture := &docoCDCapture{}
+	docoCD := httptest.NewServer(capture.handler())
+	defer docoCD.Close()
+
+	env := baseEnv(meta.URL, docoCD.URL)
+	env["GITHUB_META_URL"] = "  " + meta.URL + "\n"
+
+	p := startProxy(t, env)
+
+	resp := sendWebhook(t, p.addr, "push", pushPayload, "test-gh-secret")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d — meta URL trimming may have failed", resp.StatusCode)
+	}
+	if !capture.wasCalled() {
+		t.Error("request should have been forwarded after meta URL trimming")
 	}
 }
 

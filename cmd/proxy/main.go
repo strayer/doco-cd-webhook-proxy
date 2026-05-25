@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,7 +28,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	metaURL := os.Getenv("GITHUB_META_URL")
+	metaURL := strings.TrimSpace(os.Getenv("GITHUB_META_URL"))
 	if metaURL == "" {
 		metaURL = defaultGitHubMetaURL
 	}
