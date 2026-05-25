@@ -225,8 +225,8 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 
 ### 8. Health check endpoint
 
-- [ ] **`GET /healthz`**: Returns `200 OK` when the server is ready to accept requests. No authentication, no IP check — intended for container orchestrators.
-- [ ] **Dockerfile `HEALTHCHECK`**: Use the binary itself (e.g. subcommand or dedicated flag) to probe `/healthz`, since `scratch` has no shell or curl.
+- [x] **`GET /healthz`**: Returns `200 OK` when the server is ready to accept requests. No authentication, no IP check — intended for container orchestrators.
+- [x] **Dockerfile `HEALTHCHECK`**: Use the binary itself (e.g. subcommand or dedicated flag) to probe `/healthz`, since `scratch` has no shell or curl.
 
 ### 9. End-to-end test
 

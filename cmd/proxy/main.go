@@ -18,6 +18,10 @@ import (
 const githubMetaURL = "https://api.github.com/meta"
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(healthcheck())
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -37,6 +41,26 @@ func main() {
 		slog.Error("fatal", "error", err)
 		os.Exit(1)
 	}
+}
+
+func healthcheck() int {
+	addr := os.Getenv("LISTEN_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return 1
+	}
+	resp, err := http.Get("http://localhost:" + port + "/healthz")
+	if err != nil {
+		return 1
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+	return 0
 }
 
 func run(ctx context.Context, cfg *proxy.Config, metaURL string, ln net.Listener) error {

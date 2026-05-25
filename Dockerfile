@@ -18,4 +18,7 @@ COPY --from=build /proxy /proxy
 
 USER 65534:65534
 
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["/proxy", "healthcheck"]
+
 ENTRYPOINT ["/proxy"]
