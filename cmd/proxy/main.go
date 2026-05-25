@@ -52,7 +52,8 @@ func healthcheck() int {
 	if err != nil {
 		return 1
 	}
-	resp, err := http.Get("http://localhost:" + port + "/healthz")
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://localhost:" + port + "/healthz")
 	if err != nil {
 		return 1
 	}

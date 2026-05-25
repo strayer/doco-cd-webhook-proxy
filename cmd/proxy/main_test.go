@@ -267,6 +267,71 @@ func TestRun_RejectsWrongMethod(t *testing.T) {
 	<-errCh
 }
 
+func TestHealthcheck_Success(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/healthz" {
+			t.Errorf("expected path /healthz, got %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	t.Setenv("LISTEN_ADDR", ":"+port)
+
+	if code := healthcheck(); code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestHealthcheck_DefaultAddr(t *testing.T) {
+	t.Setenv("LISTEN_ADDR", "")
+
+	ln, err := net.Listen("tcp", "127.0.0.1:8080")
+	if err != nil {
+		t.Skip("port 8080 unavailable")
+	}
+	srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})}
+	go func() { _ = srv.Serve(ln) }()
+	defer func() { _ = srv.Close() }()
+
+	if code := healthcheck(); code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestHealthcheck_Unreachable(t *testing.T) {
+	t.Setenv("LISTEN_ADDR", ":19999")
+
+	if code := healthcheck(); code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestHealthcheck_Non200(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	t.Setenv("LISTEN_ADDR", ":"+port)
+
+	if code := healthcheck(); code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestHealthcheck_InvalidAddr(t *testing.T) {
+	t.Setenv("LISTEN_ADDR", "not-a-valid-addr")
+
+	if code := healthcheck(); code != 1 {
+		t.Errorf("expected exit code 1, got %d", code)
+	}
+}
+
 func waitForServer(t *testing.T, addr string) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
