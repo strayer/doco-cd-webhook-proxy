@@ -223,7 +223,18 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 - [x] Wire up handler and start `http.Server` with timeouts (`ReadHeaderTimeout` 5s, `ReadTimeout` 10s, `WriteTimeout` 30s, `IdleTimeout` 60s, `MaxHeaderBytes` 1 MB)
 - [x] Graceful shutdown on `SIGINT`/`SIGTERM`
 
-### 8. CI/CD — GitHub Actions and Docker image
+### 8. Health check endpoint
+
+- [ ] **`GET /healthz`**: Returns `200 OK` when the server is ready to accept requests. No authentication, no IP check — intended for container orchestrators.
+- [ ] **Dockerfile `HEALTHCHECK`**: Use the binary itself (e.g. subcommand or dedicated flag) to probe `/healthz`, since `scratch` has no shell or curl.
+
+### 9. End-to-end test
+
+- [ ] **Make GitHub meta URL configurable**: Add optional `GITHUB_META_URL` env var (default `https://api.github.com/meta`) so tests can point at a mock.
+- [ ] **E2E test**: Build the binary, start it with a mock `/meta` endpoint (returning `127.0.0.0/8` as hooks CIDR) and a mock doco-cd backend. Send a valid signed webhook, verify the mock doco-cd receives the correct re-signed request with expected headers and payload. Also test rejection cases (bad signature, disallowed repo).
+- [ ] **CI integration**: Run the e2e test as part of the PR validation workflow.
+
+### 10. CI/CD — GitHub Actions and Docker image
 
 - [x] **Dockerfile**: Multi-stage build — Go build stage, `scratch` final image. Static binary with `CGO_ENABLED=0`. Non-root user via numeric UID.
 - [x] **PR validation workflow** (`.github/workflows/ci.yaml`): Separate jobs for `go test`, `go vet`, goimports, golangci-lint, and Docker build — each visible as its own PR status check.
