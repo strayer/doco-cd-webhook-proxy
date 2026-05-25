@@ -15,7 +15,7 @@ import (
 	proxy "github.com/strayer/doco-cd-webhook-proxy/internal/proxy"
 )
 
-const githubMetaURL = "https://api.github.com/meta"
+const defaultGitHubMetaURL = "https://api.github.com/meta"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -27,13 +27,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	metaURL := os.Getenv("GITHUB_META_URL")
+	if metaURL == "" {
+		metaURL = defaultGitHubMetaURL
+	}
+
 	ln, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {
 		slog.Error("failed to listen", "addr", cfg.ListenAddr, "error", err)
 		os.Exit(1)
 	}
 
-	if err := run(ctx, cfg, githubMetaURL, ln); err != nil {
+	if err := run(ctx, cfg, metaURL, ln); err != nil {
 		slog.Error("fatal", "error", err)
 		os.Exit(1)
 	}
