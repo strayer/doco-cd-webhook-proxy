@@ -22,10 +22,11 @@ This proxy closes those gaps: deployments trigger instantly via webhooks, but do
 GitHub ──webhook──▶ proxy ──sanitized request──▶ doco-cd (internal)
 ```
 
-1. Validates the caller's IP against [GitHub's webhook CIDRs](https://api.github.com/meta)
-2. Verifies the HMAC-SHA256 signature (`X-Hub-Signature-256`)
-3. Checks the repository against a configured allowlist
-4. Constructs a **new** minimal request to doco-cd — no headers or payload fields are forwarded verbatim
+1. Validates the HTTP request (POST method, JSON content type, required headers)
+2. Validates the source IP against [GitHub's webhook CIDRs](https://api.github.com/meta)
+3. Verifies the HMAC-SHA256 signature (`X-Hub-Signature-256`)
+4. Validates the payload (required fields, repository allowlist, clone URL format)
+5. Constructs a **new** minimal request to doco-cd — no headers or payload fields are forwarded verbatim
 
 ## Configuration
 
@@ -37,6 +38,9 @@ GitHub ──webhook──▶ proxy ──sanitized request──▶ doco-cd (in
 | `ALLOWED_REPOS` | yes | | Comma-separated repository full names (e.g. `org/repo1,org/repo2`) |
 | `LISTEN_ADDR` | no | `:8080` | Address to listen on |
 | `TRUSTED_PROXY_CIDRS` | no | | Comma-separated CIDRs of trusted reverse proxies |
+| `GITHUB_META_REFRESH_INTERVAL` | no | `1h` | How often to refresh GitHub IP ranges |
+
+Secret variables (`GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`) support a `_FILE` suffix variant for use with Docker secrets or mounted files. For example, setting `GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/github_secret` reads the secret from that file instead of the environment variable directly.
 
 > [!NOTE]
 > `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` should be different values.

@@ -223,6 +223,12 @@ Each item follows TDD: write failing test first, then implement, then refactor.
 - [x] Wire up handler and start `http.Server` with timeouts (`ReadHeaderTimeout` 5s, `ReadTimeout` 10s, `WriteTimeout` 30s, `IdleTimeout` 60s, `MaxHeaderBytes` 1 MB)
 - [x] Graceful shutdown on `SIGINT`/`SIGTERM`
 
+### 8. CI/CD — GitHub Actions and Docker image
+
+- [ ] **Dockerfile**: Multi-stage build — Go build stage, `scratch` final image. Static binary with `CGO_ENABLED=0`. Non-root user via numeric UID.
+- [ ] **PR validation workflow**: GitHub Actions workflow that runs on every PR with separate jobs/steps for each check (each visible as its own status check on the PR): `go test`, `go vet`, goimports, golangci-lint, and Docker image build.
+- [ ] **Image publish workflow**: GitHub Actions workflow that builds and pushes to `ghcr.io` on main branch pushes/tags.
+
 ## Not in scope
 
 - HTTPS termination (reverse proxy responsibility)
