@@ -1,6 +1,6 @@
 # Agent Instructions
 
-Read `README.md` for project context and `IMPLEMENTATION_PLAN.md` for the full design.
+Read `README.md` for project context.
 
 ## Rules
 
