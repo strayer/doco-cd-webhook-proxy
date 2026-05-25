@@ -297,6 +297,8 @@ func TestHealthcheck_DefaultAddr(t *testing.T) {
 	go func() { _ = srv.Serve(ln) }()
 	defer func() { _ = srv.Close() }()
 
+	waitForServer(t, "127.0.0.1:8080")
+
 	if code := healthcheck(); code != 0 {
 		t.Errorf("expected exit code 0, got %d", code)
 	}
