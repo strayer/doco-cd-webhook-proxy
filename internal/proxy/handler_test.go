@@ -647,6 +647,53 @@ func TestHandler_RepoAllowlistCaseInsensitive(t *testing.T) {
 	}
 }
 
+func TestHandler_HealthzGET(t *testing.T) {
+	backend := failingBackend(t)
+	defer backend.Close()
+	h := NewHandler(testConfig(backend.URL), testChecker(t, "127.0.0.0/8"), NewForwarder())
+
+	req := httptest.NewRequest("GET", "/healthz", nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected %d, got %d", http.StatusOK, rr.Code)
+	}
+}
+
+func TestHandler_HealthzNoAuth(t *testing.T) {
+	backend := failingBackend(t)
+	defer backend.Close()
+	h := NewHandler(testConfig(backend.URL), testChecker(t, "192.0.2.0/24"), NewForwarder())
+
+	req := httptest.NewRequest("GET", "/healthz", nil)
+	req.RemoteAddr = "10.0.0.1:12345"
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("healthz should not check IP, expected %d, got %d", http.StatusOK, rr.Code)
+	}
+}
+
+func TestHandler_HealthzRejectsNonGET(t *testing.T) {
+	backend := failingBackend(t)
+	defer backend.Close()
+	h := NewHandler(testConfig(backend.URL), testChecker(t, "127.0.0.0/8"), NewForwarder())
+
+	methods := []string{"POST", "PUT", "DELETE", "PATCH"}
+	for _, m := range methods {
+		t.Run(m, func(t *testing.T) {
+			req := httptest.NewRequest(m, "/healthz", nil)
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, req)
+			if rr.Code != http.StatusMethodNotAllowed {
+				t.Errorf("expected %d for %s, got %d", http.StatusMethodNotAllowed, m, rr.Code)
+			}
+		})
+	}
+}
+
 func TestHandler_DoesNotForwardResponseBody(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Internal", "secret-info")

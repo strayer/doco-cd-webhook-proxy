@@ -40,6 +40,13 @@ func NewHandler(cfg *Config, checker *GitHubIPChecker, forwarder *Forwarder) htt
 		checker:   checker,
 		forwarder: forwarder,
 	})
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("request to unregistered path", "path", r.URL.Path, "method", r.Method)
 		w.WriteHeader(http.StatusNotFound)
