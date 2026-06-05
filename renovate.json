@@ -8,6 +8,11 @@
     {
       "groupName": "go",
       "matchDepNames": ["go", "golang"]
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "rangeStrategy": "bump"
     }
   ]
 }
