@@ -7,7 +7,7 @@
   "packageRules": [
     {
       "groupName": "go",
-      "matchPackageNames": ["go", "golang"]
+      "matchDepNames": ["go", "golang"]
     }
   ]
 }
