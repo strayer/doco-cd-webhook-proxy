@@ -18,10 +18,6 @@ This proxy closes those gaps: deployments trigger instantly via webhooks, but do
 
 ## How it works
 
-```
-GitHub ──webhook──▶ proxy ──sanitized request──▶ doco-cd (internal)
-```
-
 1. Validates the HTTP request (POST method, JSON content type, required headers)
 2. Validates the source IP against [GitHub's webhook CIDRs](https://api.github.com/meta)
 3. Verifies the HMAC-SHA256 signature (`X-Hub-Signature-256`)
