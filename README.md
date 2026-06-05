@@ -33,39 +33,74 @@ GitHub ──webhook──▶ proxy ──sanitized request──▶ doco-cd (in
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GITHUB_WEBHOOK_SECRET` | yes | | Secret shared with GitHub for signature validation |
-| `DOCO_CD_WEBHOOK_SECRET` | yes | | Secret used to sign requests to doco-cd |
+| `WEBHOOK_SECRET` | yes | | Secret used to sign requests to doco-cd (same variable name as doco-cd, so both can share one value) |
 | `DOCO_CD_URL` | yes | | Internal doco-cd URL (e.g. `http://doco-cd:80`) |
 | `ALLOWED_REPOS` | yes | | Comma-separated repository full names (e.g. `org/repo1,org/repo2`) |
 | `LISTEN_ADDR` | no | `:8080` | Address to listen on |
 | `TRUSTED_PROXY_CIDRS` | no | | Comma-separated CIDRs of trusted reverse proxies |
 | `GITHUB_META_REFRESH_INTERVAL` | no | `1h` | How often to refresh GitHub IP ranges |
 
-Secret variables (`GITHUB_WEBHOOK_SECRET`, `DOCO_CD_WEBHOOK_SECRET`) support a `_FILE` suffix variant for use with Docker secrets or mounted files. For example, setting `GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/github_secret` reads the secret from that file instead of the environment variable directly.
+Secret variables (`GITHUB_WEBHOOK_SECRET`, `WEBHOOK_SECRET`) support a `_FILE` suffix variant for use with Docker secrets or mounted files. For example, setting `GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/github_secret` reads the secret from that file instead of the environment variable directly.
 
 > [!NOTE]
-> `GITHUB_WEBHOOK_SECRET` and `DOCO_CD_WEBHOOK_SECRET` should be different values.
+> `GITHUB_WEBHOOK_SECRET` and `WEBHOOK_SECRET` should be different values.
 
 ## Running with Docker
+
+Since the proxy and doco-cd both read the shared secret from `WEBHOOK_SECRET`, a single env file can serve both services:
 
 ```yaml
 # compose.yaml
 services:
   webhook-proxy:
     image: ghcr.io/strayer/doco-cd-webhook-proxy:latest
+    user: "65534" # nobody
+    read_only: true
+    restart: always
     ports:
       - "8080:8080"
+    env_file:
+      - secrets.webhook-proxy.env # GITHUB_WEBHOOK_SECRET
+      - secrets.shared.env        # WEBHOOK_SECRET
     environment:
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
-      DOCO_CD_WEBHOOK_SECRET: ${DOCO_CD_WEBHOOK_SECRET}
       DOCO_CD_URL: http://doco-cd:80
       ALLOWED_REPOS: org/repo1,org/repo2
+    depends_on:
+      - doco-cd
 
   doco-cd:
     image: ghcr.io/kimdre/doco-cd:latest
-    # ... doco-cd configuration
+    restart: unless-stopped
+    env_file:
+      - secrets.doco-cd.env # GIT_ACCESS_TOKEN
+      - secrets.shared.env  # WEBHOOK_SECRET
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
 ```
 
-The proxy must be able to reach both the internet (to fetch [GitHub's IP ranges](https://api.github.com/meta)) and the internal doco-cd instance. Place it on a shared network with doco-cd, but only expose the proxy's port to the reverse proxy / internet.
+```sh
+# secrets.shared.env — shared by both services so the secret only exists once
+# Generate with: openssl rand -hex 32
+WEBHOOK_SECRET=your_shared_webhook_secret_here
+```
+
+```sh
+# secrets.webhook-proxy.env
+# Configure the same value in the GitHub repository webhook settings
+# Generate with: openssl rand -hex 32
+GITHUB_WEBHOOK_SECRET=your_github_webhook_secret_here
+```
+
+```sh
+# secrets.doco-cd.env
+# GitHub access token for doco-cd to pull private repositories
+GIT_ACCESS_TOKEN=your_github_token_here
+```
+
+The proxy must be able to reach both the internet (to fetch [GitHub's IP ranges](https://api.github.com/meta)) and the internal doco-cd instance. Place it on a shared network with doco-cd, but only expose the proxy's port to the reverse proxy / internet. When running behind a reverse proxy, set `TRUSTED_PROXY_CIDRS` so client IPs are taken from `X-Forwarded-For`.
+
+The image contains a single static binary, so it runs fine as an unprivileged user with a read-only filesystem (`user: "65534"`, `read_only: true`).
 
 ## Development Setup
 

@@ -170,7 +170,7 @@ func waitForReady(t *testing.T, addr string) {
 func baseEnv(metaURL, docoCDURL string) map[string]string {
 	return map[string]string{
 		"GITHUB_WEBHOOK_SECRET":        "test-gh-secret",
-		"DOCO_CD_WEBHOOK_SECRET":       "test-cd-secret",
+		"WEBHOOK_SECRET":               "test-cd-secret",
 		"DOCO_CD_URL":                  docoCDURL,
 		"ALLOWED_REPOS":                "myorg/myrepo,myorg/other-repo",
 		"GITHUB_META_URL":              metaURL,
@@ -481,7 +481,7 @@ func TestE2E_SecretFromFile(t *testing.T) {
 
 	env := map[string]string{
 		"GITHUB_WEBHOOK_SECRET_FILE":   ghSecretFile.Name(),
-		"DOCO_CD_WEBHOOK_SECRET_FILE":  cdSecretFile.Name(),
+		"WEBHOOK_SECRET_FILE":          cdSecretFile.Name(),
 		"DOCO_CD_URL":                  docoCD.URL,
 		"ALLOWED_REPOS":                "myorg/myrepo",
 		"GITHUB_META_URL":              meta.URL,

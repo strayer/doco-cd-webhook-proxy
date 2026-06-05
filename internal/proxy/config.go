@@ -25,7 +25,7 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	cdSecret, err := loadSecret("DOCO_CD_WEBHOOK_SECRET")
+	cdSecret, err := loadSecret("WEBHOOK_SECRET")
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if ghSecret == cdSecret {
-		slog.Warn("GITHUB_WEBHOOK_SECRET and DOCO_CD_WEBHOOK_SECRET are identical — this is not recommended")
+		slog.Warn("GITHUB_WEBHOOK_SECRET and WEBHOOK_SECRET are identical — this is not recommended")
 	}
 
 	cfg := &Config{
