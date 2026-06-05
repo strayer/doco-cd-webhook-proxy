@@ -60,6 +60,28 @@ jobs:
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
       - run: go test ./e2e/ -tags e2e -v
 
+  go-version-sync:
+    name: Go version sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check Go versions match
+        run: |
+          dockerfile=$(sed -n 's/^FROM .*golang:\([0-9][0-9.]*\).*/\1/p' Dockerfile)
+          gomod=$(sed -n 's/^go \([0-9][0-9.]*\)$/\1/p' go.mod)
+          mise=$(sed -n 's/^go = "\([0-9][0-9.]*\)"$/\1/p' mise.toml)
+          echo "Dockerfile: ${dockerfile:-<not found>}"
+          echo "go.mod:     ${gomod:-<not found>}"
+          echo "mise.toml:  ${mise:-<not found>}"
+          if [ -z "$dockerfile" ] || [ -z "$gomod" ] || [ -z "$mise" ]; then
+            echo "::error::Failed to extract a Go version from one or more files"
+            exit 1
+          fi
+          if [ "$dockerfile" != "$gomod" ] || [ "$gomod" != "$mise" ]; then
+            echo "::error::Go versions are out of sync"
+            exit 1
+          fi
+
   docker:
     name: Docker build
     runs-on: ubuntu-latest
