@@ -13,7 +13,7 @@ func clearConfigEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
 		"GITHUB_WEBHOOK_SECRET", "GITHUB_WEBHOOK_SECRET_FILE",
-		"DOCO_CD_WEBHOOK_SECRET", "DOCO_CD_WEBHOOK_SECRET_FILE",
+		"WEBHOOK_SECRET", "WEBHOOK_SECRET_FILE",
 		"DOCO_CD_URL",
 		"ALLOWED_REPOS",
 		"LISTEN_ADDR",
@@ -30,7 +30,7 @@ func clearConfigEnv(t *testing.T) {
 func setRequiredEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("GITHUB_WEBHOOK_SECRET", "gh-secret")
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET", "cd-secret")
+	t.Setenv("WEBHOOK_SECRET", "cd-secret")
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 }
@@ -40,7 +40,7 @@ func TestLoadRequiredVars(t *testing.T) {
 
 	required := []string{
 		"GITHUB_WEBHOOK_SECRET",
-		"DOCO_CD_WEBHOOK_SECRET",
+		"WEBHOOK_SECRET",
 		"DOCO_CD_URL",
 		"ALLOWED_REPOS",
 	}
@@ -213,7 +213,7 @@ func TestLoadFileVariant(t *testing.T) {
 	}
 
 	t.Setenv("GITHUB_WEBHOOK_SECRET_FILE", ghSecretFile)
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET_FILE", cdSecretFile)
+	t.Setenv("WEBHOOK_SECRET_FILE", cdSecretFile)
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 
@@ -241,7 +241,7 @@ func TestLoadFileVariantTakesPrecedence(t *testing.T) {
 
 	t.Setenv("GITHUB_WEBHOOK_SECRET", "from-env")
 	t.Setenv("GITHUB_WEBHOOK_SECRET_FILE", ghSecretFile)
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET", "cd-secret")
+	t.Setenv("WEBHOOK_SECRET", "cd-secret")
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 
@@ -259,7 +259,7 @@ func TestLoadFileVariantMissingFile(t *testing.T) {
 	clearConfigEnv(t)
 
 	t.Setenv("GITHUB_WEBHOOK_SECRET_FILE", "/nonexistent/path")
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET", "cd-secret")
+	t.Setenv("WEBHOOK_SECRET", "cd-secret")
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 
@@ -279,7 +279,7 @@ func TestLoadFileVariantEmptyContents(t *testing.T) {
 	}
 
 	t.Setenv("GITHUB_WEBHOOK_SECRET_FILE", ghSecretFile)
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET", "cd-secret")
+	t.Setenv("WEBHOOK_SECRET", "cd-secret")
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 
@@ -349,7 +349,7 @@ func TestLoadAllowedReposInvalidFormat(t *testing.T) {
 func TestLoadIdenticalSecretsWarning(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("GITHUB_WEBHOOK_SECRET", "same-secret")
-	t.Setenv("DOCO_CD_WEBHOOK_SECRET", "same-secret")
+	t.Setenv("WEBHOOK_SECRET", "same-secret")
 	t.Setenv("DOCO_CD_URL", "http://doco-cd:80")
 	t.Setenv("ALLOWED_REPOS", "org/repo1")
 
