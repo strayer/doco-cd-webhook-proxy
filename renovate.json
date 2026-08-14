@@ -5,6 +5,10 @@
     ":disableRateLimiting",
     "docker:pinDigests"
   ],
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "rebase",
+  "platformAutomerge": true,
   "packageRules": [
     {
       "groupName": "go",
