@@ -155,7 +155,18 @@ func TestParsePayload(t *testing.T) {
 				"repository": {"name": "r", "full_name": "o/r", "clone_url": "https://github.com/o/r.git"},
 				"pusher": {"name": "u"}
 			}`,
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name: "null pusher email",
+			body: `{
+				"ref": "refs/heads/main",
+				"before": "0000000000000000000000000000000000000000",
+				"after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"repository": {"name": "r", "full_name": "o/r", "clone_url": "https://github.com/o/r.git"},
+				"pusher": {"name": "renovate[bot]", "email": null}
+			}`,
+			wantErr: false,
 		},
 		{
 			name: "extra fields are ignored",

@@ -14,7 +14,7 @@ type Repository struct {
 
 type Pusher struct {
 	Name  string `json:"name"`
-	Email string `json:"email"`
+	Email string `json:"email,omitempty"`
 }
 
 type GitHubPushEvent struct {
@@ -54,7 +54,6 @@ func validatePayload(event *GitHubPushEvent) error {
 		{event.Repository.FullName, "repository.full_name"},
 		{event.Repository.CloneURL, "repository.clone_url"},
 		{event.Pusher.Name, "pusher.name"},
-		{event.Pusher.Email, "pusher.email"},
 	}
 
 	for _, c := range checks {
