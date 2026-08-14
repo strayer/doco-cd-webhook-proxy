@@ -579,6 +579,45 @@ func TestHandler_EndToEnd(t *testing.T) {
 	}
 }
 
+func TestHandler_EndToEnd_OptionalPusherEmail(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{
+			name: "null",
+			body: strings.Replace(validPushPayload, `"email": "user@example.com"`, `"email": null`, 1),
+		},
+		{
+			name: "missing",
+			body: strings.Replace(validPushPayload, `"name": "user",
+		"email": "user@example.com"`, `"name": "user"`, 1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			defer backend.Close()
+
+			h := &webhookHandler{cfg: testConfig(backend.URL), checker: testChecker(t, "127.0.0.0/8"), forwarder: NewForwarder()}
+			req := validPushRequest(t)
+			req.Body = io.NopCloser(strings.NewReader(tt.body))
+			req.Header.Set("X-Hub-Signature-256", ComputeSignature([]byte(tt.body), []byte("gh-secret")))
+
+			result := h.handle(req)
+			if !result.forwarded {
+				t.Fatalf("expected request to be forwarded, got reason %q", result.reason)
+			}
+			if result.status != http.StatusAccepted {
+				t.Errorf("expected %d, got %d", http.StatusAccepted, result.status)
+			}
+		})
+	}
+}
+
 func TestHandler_EndToEnd_BackendError(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
