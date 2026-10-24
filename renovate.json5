@@ -28,7 +28,18 @@
       // Go toolchain and the dev tools built against it move together: a newer Go
       // needs a golangci-lint built with it, and Go version sync needs all pins equal
       "groupName": "Go toolchain",
-      "matchDepNames": ["go", "golang"]
+      "matchDepNames": ["go", "golang"],
+      // no cooldown for the toolchain itself: Go point releases are mostly security
+      // fixes straight from go.dev, and the golang image's Docker Hub timestamp
+      // resets on every rebuild, which would split this group into a failing PR
+      "minimumReleaseAge": null
+    },
+    {
+      // rebuilds of the golang image under an unchanged tag still wait
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["golang"],
+      "matchUpdateTypes": ["digest"],
+      "minimumReleaseAge": "3 days"
     },
     { "groupName": "Go toolchain", "matchManagers": ["mise"] },
     {
