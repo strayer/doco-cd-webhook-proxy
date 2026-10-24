@@ -225,7 +225,9 @@ func TestRun_PingEvent(t *testing.T) {
 	}
 
 	cancel()
-	<-errCh
+	if err := <-errCh; err != nil {
+		t.Errorf("expected clean shutdown, got: %v", err)
+	}
 }
 
 func TestRun_RejectsWrongMethod(t *testing.T) {
@@ -264,7 +266,9 @@ func TestRun_RejectsWrongMethod(t *testing.T) {
 	}
 
 	cancel()
-	<-errCh
+	if err := <-errCh; err != nil {
+		t.Errorf("expected clean shutdown, got: %v", err)
+	}
 }
 
 func TestHealthcheck_Success(t *testing.T) {
