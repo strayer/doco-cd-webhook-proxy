@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":disableRateLimiting",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "pin",
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": true,
+  "packageRules": [
+    { "matchManagers": ["github-actions"], "groupName": "GitHub Actions" },
+    {
+      // Go toolchain and the dev tools built against it move together: a newer Go
+      // needs a golangci-lint built with it, and Go version sync needs all pins equal
+      "groupName": "Go toolchain",
+      "matchDepNames": ["go", "golang"]
+    },
+    { "groupName": "Go toolchain", "matchManagers": ["mise"] },
+    {
+      // without this the gomod manager never bumps the go directive
+      "matchManagers": ["gomod"], "matchDepNames": ["go"], "rangeStrategy": "bump"
+    },
+    { "matchUpdateTypes": ["major"], "automerge": false }
+  ]
+}

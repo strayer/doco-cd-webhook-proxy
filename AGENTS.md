@@ -38,8 +38,16 @@ If a commit fails due to goimports reformatting, re-stage the changes and commit
 
 ## Build & test
 
+mise is the single source of truth for tools (Go, goimports, golangci-lint, govulncheck) and tasks:
+
 ```sh
-go build ./...
-go test ./... -cover
-go vet ./...
+mise run format        # goimports -w .
+mise run test          # go test -race -cover ./...
+mise run lint          # format-check, vet (incl. e2e tag), golangci-lint, govulncheck
+mise run e2e           # end-to-end tests (-tags e2e)
+mise run run           # run the proxy locally
 ```
+
+## CI
+
+`.github/workflows/ci.yaml` runs on pull requests and pushes to main, installing tools only via `jdx/mise-action`. Jobs (names are required status checks, don't rename): `Test`, `Vet`, `goimports`, `golangci-lint`, `govulncheck`, `E2E`, `Go version sync`, `Docker build`. The Go version must match in `go.mod`, `mise.toml` and the `Dockerfile`. `release.yaml` (on `v*` tags) gates the image build on unit and e2e tests; `vulncheck.yaml` scans the published image weekly. Renovate config is `renovate.json5`; Go and the mise-managed dev tools are grouped as "Go toolchain".

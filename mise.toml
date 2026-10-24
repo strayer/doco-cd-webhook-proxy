@@ -1,4 +1,41 @@
 [tools]
-go = "1.26.6"
+go = "1.26.10"
 "go:golang.org/x/tools/cmd/goimports" = "0.49.0"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
 golangci-lint = "2.12.2"
+
+[tasks.format]
+description = "Format Go source"
+run = "goimports -w ."
+
+[tasks.format-check]
+description = "Require goimports-clean source"
+run = "test -z \"$(goimports -l .)\""
+
+[tasks.test]
+description = "Run unit tests"
+run = "go test -race -cover ./..."
+
+[tasks.vet]
+description = "Run go vet (including e2e build tag)"
+run = "go vet ./... && go vet -tags e2e ./..."
+
+[tasks.golangci-lint]
+description = "Run golangci-lint"
+run = "golangci-lint run"
+
+[tasks.govulncheck]
+description = "Scan dependencies and stdlib for known vulnerabilities"
+run = "govulncheck ./..."
+
+[tasks.lint]
+description = "Run all static checks"
+depends = ["format-check", "vet", "golangci-lint", "govulncheck"]
+
+[tasks.e2e]
+description = "Run end-to-end tests"
+run = "go test ./e2e/ -tags e2e -v"
+
+[tasks.run]
+description = "Run the proxy locally (expects env vars, see README)"
+run = "go run ./cmd/proxy"
