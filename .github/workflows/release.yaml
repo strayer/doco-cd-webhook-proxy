@@ -82,26 +82,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-  release:
+  github-release:
     name: GitHub release
-    needs: [verify-tag, build]
+    needs: [verify-tag, e2e, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      IMAGE: ghcr.io/${{ github.repository }}
+      DIGEST: ${{ needs.build.outputs.digest }}
     steps:
       - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          IMAGE: ghcr.io/${{ github.repository }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          prerelease=()
-          case "$GITHUB_REF_NAME" in *-rc*) prerelease=(--prerelease) ;; esac
-          {
-            echo "### Container image"
-            echo
-            echo "    ${IMAGE}:${version}"
-            echo
-          } > notes.md
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --generate-notes --notes-file notes.md "${prerelease[@]}"
+          version=${GITHUB_REF_NAME#v}
+          flags=()
+          case "$GITHUB_REF_NAME" in
+            *-rc*) flags+=(--prerelease) ;;
+          esac
+          # shellcheck disable=SC2016 # backticks are literal markdown fences
+          notes=$(printf '## Container image\n\n```\n%s:%s\n%s@%s\n```\n' \
+            "$IMAGE" "$version" "$IMAGE" "$DIGEST")
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --generate-notes --notes "$notes" "${flags[@]}"
