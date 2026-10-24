@@ -13,6 +13,9 @@ changelog:
     - title: Dependencies
       labels:
         - dependencies
+    - title: Maintenance
+      labels:
+        - chore
     - title: Miscellaneous
       labels:
         - "*"
@@ -21,4 +24,5 @@ changelog:
         - feature
         - enhancement
         - bug
+        - chore
         - dependencies

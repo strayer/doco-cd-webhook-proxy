@@ -16,8 +16,8 @@ jobs:
         run: |
           for label in $LABELS; do
             case "$label" in
-              breaking|feature|enhancement|bug|dependencies) exit 0 ;;
+              breaking|feature|enhancement|bug|chore|dependencies) exit 0 ;;
             esac
           done
-          echo "::error::PR must have one of these labels: breaking, feature, enhancement, bug, dependencies"
+          echo "::error::PR must have one of these labels: breaking, feature, enhancement, bug, chore, dependencies"
           exit 1
