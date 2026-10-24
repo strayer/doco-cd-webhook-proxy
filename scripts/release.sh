@@ -127,7 +127,9 @@ main() {
     echo "No previous final v* tag. All merged PRs:"
   fi
 
-  while IFS=$'\t' read -r num oid labels title; do
+  # Fields are separated by the ASCII unit separator: tab is whitespace to
+  # read, so an empty label list would make the title land in the labels field.
+  while IFS=$'\x1f' read -r num oid labels title; do
     [[ -n "$oid" ]] || continue
     grep -qx "$oid" <<<"$commits" || continue
     echo "  #$num [$labels] $title"
@@ -137,7 +139,7 @@ main() {
     esac
   done < <(gh pr list --state merged --base main --limit 200 \
     --json number,title,labels,mergeCommit \
-    --jq '.[] | [(.number|tostring), (.mergeCommit.oid // ""), ([.labels[].name] | join(",")), .title] | @tsv')
+    --jq '.[] | [(.number|tostring), (.mergeCommit.oid // ""), ([.labels[].name] | join(",")), .title] | join("\u001f")')
 
   local next reason
   if [[ -n "$override" ]]; then
