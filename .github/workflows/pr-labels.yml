@@ -1,0 +1,23 @@
+name: PR labels
+
+on:
+  pull_request:
+    types: [opened, reopened, labeled, unlabeled, synchronize]
+
+permissions: {}
+
+jobs:
+  require-release-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a release notes label
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          for label in $LABELS; do
+            case "$label" in
+              breaking|feature|enhancement|bug|dependencies) exit 0 ;;
+            esac
+          done
+          echo "::error::PR must have one of these labels: breaking, feature, enhancement, bug, dependencies"
+          exit 1
