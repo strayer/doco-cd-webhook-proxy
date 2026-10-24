@@ -8,12 +8,22 @@
   ],
   "labels": ["dependencies"],
   "rangeStrategy": "pin",
-  "automerge": true,
+  // updates wait three days so that malware scanners and researchers get a look
+  // first (Renovate's own security presets use the same value); vulnerability
+  // alert PRs skip the wait and are raised immediately
+  "minimumReleaseAge": "3 days",
+  // nothing merges on its own except GitHub Actions bumps (see packageRules):
+  // merged dependency PRs are the cue to cut a release, so they stay visible
   "automergeType": "pr",
   "automergeStrategy": "squash",
   "platformAutomerge": true,
   "packageRules": [
-    { "matchManagers": ["github-actions"], "groupName": "GitHub Actions" },
+    {
+      // Actions never ship in the artifact, so they may land without a release
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "automerge": true
+    },
     {
       // Go toolchain and the dev tools built against it move together: a newer Go
       // needs a golangci-lint built with it, and Go version sync needs all pins equal
