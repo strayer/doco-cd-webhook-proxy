@@ -8,10 +8,16 @@
   ],
   "labels": ["dependencies"],
   "rangeStrategy": "pin",
-  // updates wait three days so that malware scanners and researchers get a look
+  // updates should wait three days so that malware scanners and researchers get a look
   // first (Renovate's own security presets use the same value); vulnerability
   // alert PRs skip the wait and are raised immediately
   "minimumReleaseAge": "3 days",
+  // PRs open at once with a pending renovate/stability-days status instead of waiting
+  // out of sight: security fixes can be merged on day 0, and tools without a release
+  // timestamp (goimports, govulncheck) would otherwise stay hidden forever. Whoever
+  // merges checks the release dates by hand: the status is not a required check, and
+  // it never clears for those tools or for digest updates
+  "internalChecksFilter": "none",
   // nothing merges on its own except GitHub Actions bumps (see packageRules):
   // merged dependency PRs are the cue to cut a release, so they stay visible
   "automergeType": "pr",
@@ -22,7 +28,9 @@
       // Actions never ship in the artifact, so they may land without a release
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "automerge": true
+      "automerge": true,
+      // automerge does not wait for the status, so only this filter keeps the cooldown
+      "internalChecksFilter": "strict"
     },
     {
       // Go toolchain and the dev tools built against it move together: a newer Go
@@ -35,7 +43,8 @@
       "minimumReleaseAge": null
     },
     {
-      // rebuilds of the golang image under an unchanged tag still wait
+      // rebuilds of the golang image under an unchanged tag open at once as well; this
+      // only keeps the status on them, their age comes from tag_last_pushed on Docker Hub
       "matchDatasources": ["docker"],
       "matchDepNames": ["golang"],
       "matchUpdateTypes": ["digest"],
